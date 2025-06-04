@@ -1,0 +1,36 @@
+import os
+import torch
+from torchvision import transforms
+from image_loader import PuzzleDataset  # adjust if your file is elsewhere
+
+# Path to folder with original images
+image_dir = '/Users/kavanamanvi/Desktop/ComputerVision/FinalProject/Images'
+
+# Define basic image transform
+transform = transforms.Compose([
+    transforms.ToTensor()
+])
+
+# Loop through each difficulty level
+for level in ['easy', 'medium', 'difficult']:
+    print(f"\n=== Testing PuzzleDataset | Level: {level.upper()} ===")
+
+    # Create dataset
+    dataset = PuzzleDataset(image_dir=image_dir, transform=transform, level=level)
+    print(f"Found {len(dataset)} images in {image_dir}")
+
+    # Iterate through all images in the dataset
+    for idx in range(len(dataset)):
+        image_tensor, image_name = dataset[idx]
+        print(f"[{idx}] Processed image: {image_name}, Tensor shape: {image_tensor.shape}")
+
+    # Check output directory
+    parent_dir = os.path.dirname(image_dir)
+    output_dir = os.path.join(parent_dir, f'shuffled_{level}')
+    if os.path.exists(output_dir):
+        saved_images = os.listdir(output_dir)
+        print(f"\n✅ {len(saved_images)} shuffled images saved in: {output_dir}")
+        for img_name in saved_images:
+            print(f"  - {img_name}")
+    else:
+        print(f"\n❌ No output folder found at: {output_dir}")
