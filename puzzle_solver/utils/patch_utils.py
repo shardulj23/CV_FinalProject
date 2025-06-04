@@ -1,58 +1,62 @@
 # utils/patch_utils.py
 
-import torch
+import numpy as np
 import random
-import math
 
 class PatchManager:
     def __init__(self, patch_size=(4, 4), image_size=(256, 256)):
-        self.patch_size = patch_size
-        self.image_size = image_size
-
-        self.num_patches_y = image_size[0] // patch_size[0]
-        self.num_patches_x = image_size[1] // patch_size[1]
-        self.total_patches = self.num_patches_y * self.num_patches_x
+        self.patch_rows, self.patch_cols = patch_size
+        self.img_height, self.img_width = image_size
+        self.patch_height = self.img_height // self.patch_rows
+        self.patch_width = self.img_width // self.patch_cols
 
     def divide_into_patches(self, image):
         """
-        image: torch.Tensor of shape (C, H, W)
-        returns: list of patches of shape (C, patch_H, patch_W)
+        Splits the image into non-overlapping 64x64 patches (assuming 256x256 input and 4x4 grid).
+        Returns:
+            patches (list of np.array): list of 64x64 patches
         """
-        C, H, W = image.shape
-        ph, pw = self.patch_size
         patches = []
-        for i in range(0, H, ph):
-            for j in range(0, W, pw):
-                patch = image[:, i:i+ph, j:j+pw]
+        for i in range(self.patch_rows):
+            for j in range(self.patch_cols):
+                top = i * self.patch_height
+                left = j * self.patch_width
+                patch = image[top:top + self.patch_height, left:left + self.patch_width]
                 patches.append(patch)
         return patches
 
     def shuffle_patches(self, patches, k):
         """
-        patches: list of torch.Tensor patches
-        k: number of patches to shuffle
-        returns: list with k patches shuffled
+        Randomly selects k patches and shuffles them.
+        Args:
+            patches (list of np.array): list of 16 patches
+            k (int): number of patches to shuffle
+        Returns:
+            list of np.array: new list with k patches shuffled
         """
-        patches = patches.copy()
-        indices = random.sample(range(len(patches)), k)
-        shuffled = indices[:]
-        random.shuffle(shuffled)
-        for i, j in zip(indices, shuffled):
-            patches[i], patches[j] = patches[j], patches[i]
-        return patches
+        indices = list(range(len(patches)))
+        selected_indices = random.sample(indices, k)
+        shuffled_indices = selected_indices.copy()
+        random.shuffle(shuffled_indices)
+
+        # Apply shuffle
+        shuffled_patches = patches.copy()
+        for orig_idx, new_idx in zip(selected_indices, shuffled_indices):
+            shuffled_patches[orig_idx] = patches[new_idx]
+        return shuffled_patches
 
     def reconstruct_image(self, patches):
         """
-        patches: list of torch.Tensor patches of shape (C, patch_H, patch_W)
-        returns: torch.Tensor image of shape (C, H, W)
+        Reconstructs the original image from 64x64 patches.
+        Args:
+            patches (list of np.array): list of 16 patches
+        Returns:
+            np.array: reconstructed 256x256 image
         """
-        C = patches[0].shape[0]
-        ph, pw = self.patch_size
-        ny, nx = self.num_patches_y, self.num_patches_x
-
         rows = []
-        for y in range(ny):
-            row = [patches[y * nx + x] for x in range(nx)]
-            rows.append(torch.cat(row, dim=2))  # concat along width
-        return torch.cat(rows, dim=1)  # concat along height
-
+        for i in range(self.patch_rows):
+            row_patches = patches[i * self.patch_cols:(i + 1) * self.patch_cols]
+            row = np.concatenate(row_patches, axis=1)
+            rows.append(row)
+        reconstructed_image = np.concatenate(rows, axis=0)
+        return reconstructed_image
