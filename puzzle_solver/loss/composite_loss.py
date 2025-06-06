@@ -25,11 +25,9 @@ class CompositeLoss(nn.Module):
 
         for i in range(0, H, ps):
             for j in range(0, W, ps):
-                # Extract patches and flatten
                 out_patch = output[:, :, i:i+ps, j:j+ps].reshape(B, -1)
                 tgt_patch = target[:, :, i:i+ps, j:j+ps].reshape(B, -1)
 
-                # Normalize the patches
                 out_patch = F.normalize(out_patch, dim=1)
                 tgt_patch = F.normalize(tgt_patch, dim=1)
 
