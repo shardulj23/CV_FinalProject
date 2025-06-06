@@ -33,7 +33,6 @@ class CompositeLoss(nn.Module):
                 out_patch = F.normalize(out_patch, dim=1)
                 tgt_patch = F.normalize(tgt_patch, dim=1)
 
-                # Cosine similarity (per batch)
                 cosine_sim = torch.sum(out_patch * tgt_patch, dim=1)  # shape: [B]
                 patch_loss = 1.0 - cosine_sim  # higher sim = lower loss
                 total_loss += torch.sum(patch_loss)
